@@ -18,5 +18,19 @@ services:
   traefik-test:
     image: traefik/whoami:latest
     labels:
-      - "traefik.http.routers.testproxy.rule=Host(`test.net`)"
-      - "traefik.http.services.testservice.loadbalancer.server.port=80"
+      traefik.http.routers.testproxy.rule: "Host(`test.net`)"
+      traefik.http.services.testservice.loadbalancer.server.port: "80"
+
+  api-server:
+    build:
+      context: ./api-server/
+    labels:
+      traefik.http.routers.apiproxy1.rule: "Host(`api1.test.net`)"
+      traefik.http.services.apiservice1.loadbalancer.server.port: "80"
+
+  api-server2:
+    build:
+      context: ./api-server2/
+    labels:
+      traefik.http.routers.apiproxy2.rule: "Host(`api2.test.net`) || Host(`api3.test.net`) "
+      traefik.http.services.apiservice2.loadbalancer.server.port: "80"
