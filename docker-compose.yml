@@ -18,4 +18,5 @@ services:
   traefik-test:
     image: traefik/whoami:latest
     labels:
-      this.test.description: "default route for traefik"
+      - "traefik.http.routers.testproxy.rule=Host(`test.net`)"
+      - "traefik.http.services.testservice.loadbalancer.server.port=80"
