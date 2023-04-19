@@ -15,12 +15,12 @@ services:
       - type: bind
         source: /var/run/docker.sock
         target: /var/run/docker.sock
-
-  traefik-test:
-    image: traefik/whoami:latest
-    labels:
-      traefik.http.routers.testproxy.rule: "Host(`test.net`)"
-      traefik.http.services.testservice.loadbalancer.server.port: "80"
+    networks:
+      default:
+        aliases:
+          - api1.test.net
+          - api2.test.net
+          - api3.test.net
 
   api-server:
     build:
@@ -28,10 +28,6 @@ services:
     labels:
       traefik.http.routers.apiproxy1.rule: "Host(`api1.test.net`)"
       traefik.http.services.apiservice1.loadbalancer.server.port: "80"
-    networks:
-      default:
-        aliases:
-          - api1.test.net
 
   api-server2:
     build:
@@ -39,11 +35,6 @@ services:
     labels:
       traefik.http.routers.apiproxy2.rule: "Host(`api2.test.net`) || Host(`api3.test.net`) "
       traefik.http.services.apiservice2.loadbalancer.server.port: "80"
-    networks:
-      default:
-        aliases:
-          - api2.test.net
-          - api3.test.net
 
   api-client:
     build:
