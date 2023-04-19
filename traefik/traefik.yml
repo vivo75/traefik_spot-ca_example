@@ -9,7 +9,7 @@ global:
 providers:
   docker:
     defaultRule: "Host(`{{ trimPrefix `/` .Name }}.docker.localhost`)"
-    exposedByDefault: true
+    exposedByDefault: false
 
 # API and dashboard configuration
 api:
