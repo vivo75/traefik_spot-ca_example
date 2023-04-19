@@ -1,0 +1,16 @@
+## traefik.yml
+# https://doc.traefik.io/traefik/providers/docker/
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+# Docker configuration backend
+providers:
+  docker:
+    defaultRule: "Host(`{{ trimPrefix `/` .Name }}.docker.localhost`)"
+    exposedByDefault: true
+
+# API and dashboard configuration
+api:
+  insecure: true

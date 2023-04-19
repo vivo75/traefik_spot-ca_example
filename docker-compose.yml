@@ -1,0 +1,21 @@
+---
+version: "3.9"
+services:
+  traefik:
+    image: "traefik:v2.10"
+    ports:
+      - "8080:8080"
+      - "80:80"
+    volumes:
+      - type: bind
+        source: ./traefik/traefik.yml
+        target: /etc/traefik/traefik.yml
+        read_only: True
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+
+  traefik-test:
+    image: traefik/whoami:latest
+    labels:
+      this.test.description: "default route for traefik"
