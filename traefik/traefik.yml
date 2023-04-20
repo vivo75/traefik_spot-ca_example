@@ -26,3 +26,13 @@ entrypoints:
     address: ":80"
   websecure:
     address: ":443"
+
+certificatesResolvers:
+  api-server-resolver:
+    acme:
+      caserver: "https://ca.test.net:9000/acme/acme/directory"
+      email: "me@francesco-riosa.com"
+      storage: "acme.json"
+      httpChallenge:
+        # used during the challenge (which is unencrypted)
+        entryPoint: "web"

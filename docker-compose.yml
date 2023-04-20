@@ -43,11 +43,16 @@ services:
       start_period: 2s
 
   traefik:
-    image: "traefik:2.10"
+    build:
+      context: ./traefik/
+    image: test-net/traefik:2.10
     ports:
       - "8080:8080"
       - "80:80"
       - "443:443"
+    environment:
+      STEPCAURL: "https://ca.test.net:9000"
+    stop_grace_period: 5s
     volumes:
       - type: bind
         source: ./traefik/traefik.yml
@@ -56,6 +61,7 @@ services:
       - type: bind
         source: /var/run/docker.sock
         target: /var/run/docker.sock
+        read_only: True
     depends_on:
       api-server:
         condition: service_healthy
@@ -75,12 +81,22 @@ services:
     image: test-net/api-server1:latest
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.api-server.rule=Host(`api1.test.net`) || Host(`api2.test.net`) || Host(`api3.test.net`)"
-      - "traefik.http.routers.api-server.entrypoints=web"
       - "traefik.docker.network=test.net"
-      #- "traefik.http.routers.api-server.entrypoints=websecure"
-      #- "traefik.http.routers.api-server.tls.certresolver=myresolver"
-      - "traefik.http.services.api-server.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.api-server-redirect-websecure.redirectscheme.scheme=https"
+      # Web
+      - "traefik.http.routers.api-server-http.middlewares=api-server-redirect-websecure"
+      - "traefik.http.routers.api-server-http.rule=Host(`api1.test.net`) || Host(`api2.test.net`) || Host(`api3.test.net`)"
+      - "traefik.http.routers.api-server-http.entrypoints=web"
+      - "traefik.http.routers.api-server-http.service=api-server-web"
+      - "traefik.http.services.api-server-web.loadbalancer.server.port=80"
+      # Web Secure
+      - "traefik.http.routers.api-server.rule=Host(`api1.test.net`) || Host(`api2.test.net`) || Host(`api3.test.net`)"
+      - "traefik.http.routers.api-server.entrypoints=websecure"
+      - "traefik.http.routers.api-server.service=api-server-websecure"
+      - "traefik.http.routers.api-server.tls=true"
+      - "traefik.http.routers.api-server.tls.certresolver=api-server-resolver"
+      # Since we are using traefik as a proxy the backend use plain http on port 80
+      - "traefik.http.services.api-server-websecure.loadbalancer.server.port=80"
     depends_on:
       ca:
         condition: service_healthy
@@ -105,6 +121,7 @@ services:
         condition: service_healthy
     environment:
       STEPCAURL: "https://ca.test.net:9000"
+    stop_grace_period: 1s
     networks:
       test-net:
         ipv4_address: 172.33.3.3
