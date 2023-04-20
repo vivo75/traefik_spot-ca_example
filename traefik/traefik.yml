@@ -8,9 +8,21 @@ global:
 # Docker configuration backend
 providers:
   docker:
-    defaultRule: "Host(`{{ trimPrefix `/` .Name }}.docker.localhost`)"
+    defaultRule: "Host(`{{ trimPrefix `/` .Name }}.test.net`)"
     exposedByDefault: false
+    network: test-net
+    swarmMode: false
 
 # API and dashboard configuration
 api:
   insecure: true
+  debug: true
+
+log:
+  level: "debug"
+
+entrypoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"

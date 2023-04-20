@@ -1,12 +1,53 @@
 ---
 version: "3.9"
 
+networks:
+  test-net:
+    name: "test.net"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.33.0.0/16
+          ip_range: 172.33.5.0/24
+          gateway: 172.33.5.254
+
 services:
+
+  ca:
+    build:
+      context: ./CA/
+    image: test-net/step-ca:latest
+    ports:
+      - "9000:9000"
+    ## Initialization is managed at build time
+    ## See the Dockerfile
+    #environment:
+    #  DOCKER_STEPCA_INIT_NAME: "Smallstep"
+    #  DOCKER_STEPCA_INIT_DNS_NAMES: "localhost,ca,ca.test.net"
+    #  DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT: "true"
+    #  DOCKER_STEPCA_INIT_PROVISIONER_NAME: "admin"
+    #  DOCKER_STEPCA_INIT_SSH: "true"
+    #  DOCKER_STEPCA_INIT_ACME: "true"
+    # volumes:
+    #   - "step:/home/step"
+    networks:
+      test-net:
+        aliases:
+          - ca.test.net
+        ipv4_address: 172.33.3.0
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--insecure", "https://ca.test.net:9000/health"]
+      interval: 2s
+      timeout: 1s
+      retries: 2
+      start_period: 2s
+
   traefik:
-    image: "traefik:v2.10"
+    image: "traefik:2.10"
     ports:
       - "8080:8080"
       - "80:80"
+      - "443:443"
     volumes:
       - type: bind
         source: ./traefik/traefik.yml
@@ -15,27 +56,57 @@ services:
       - type: bind
         source: /var/run/docker.sock
         target: /var/run/docker.sock
+    depends_on:
+      api-server:
+        condition: service_healthy
     networks:
-      default:
+      test-net:
         aliases:
           - api1.test.net
           - api2.test.net
           - api3.test.net
+        ipv4_address: 172.33.3.1
+    labels:
+      - traefik.docker.network=test-net
 
   api-server:
     build:
       context: ./api-server/
+    image: test-net/api-server1:latest
     labels:
-      traefik.http.routers.apiproxy1.rule: "Host(`api1.test.net`)"
-      traefik.http.services.apiservice1.loadbalancer.server.port: "80"
-
-  api-server2:
-    build:
-      context: ./api-server2/
-    labels:
-      traefik.http.routers.apiproxy2.rule: "Host(`api2.test.net`) || Host(`api3.test.net`) "
-      traefik.http.services.apiservice2.loadbalancer.server.port: "80"
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-server.rule=Host(`api1.test.net`) || Host(`api2.test.net`) || Host(`api3.test.net`)"
+      - "traefik.http.routers.api-server.entrypoints=web"
+      - "traefik.docker.network=test.net"
+      #- "traefik.http.routers.api-server.entrypoints=websecure"
+      #- "traefik.http.routers.api-server.tls.certresolver=myresolver"
+      - "traefik.http.services.api-server.loadbalancer.server.port=80"
+    depends_on:
+      ca:
+        condition: service_healthy
+    environment:
+      STEPCAURL: "https://ca.test.net:9000"
+    networks:
+      test-net:
+        ipv4_address: 172.33.3.2
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--insecure", "http://api-server:80/"]
+      interval: 2s
+      timeout: 1s
+      retries: 2
+      start_period: 2s
 
   api-client:
     build:
       context: ./client/
+    image: test-net/api-client:latest
+    depends_on:
+      ca:
+        condition: service_healthy
+    environment:
+      STEPCAURL: "https://ca.test.net:9000"
+    networks:
+      test-net:
+        ipv4_address: 172.33.3.3
+    # extra_hosts:
+    #   - "api1.test.net:172.33.3.2"
