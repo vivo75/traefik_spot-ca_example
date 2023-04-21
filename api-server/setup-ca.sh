@@ -20,6 +20,9 @@ if [[ $STEPCAURL != "" && ! -f /code/key.pem ]]; then
         --acme ${STEPCAURL}/acme/acme/directory \
         --san "api2.local.net" \
         --san "api3.local.net" \
+        ${IS_PASSTHROUGH:+--san api1.test.net} \
+        ${IS_PASSTHROUGH:+--san api2.test.net} \
+        ${IS_PASSTHROUGH:+--san api3.test.net} \
         --san "172.33.3.2" \
         --force \
         "api1.local.net" \
