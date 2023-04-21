@@ -21,4 +21,4 @@ COPY ./app /code/app
 COPY ./setup-ca.sh /setup-ca.sh
 COPY --from=CA /home/step/ca-fingerprint /ca-fingerprint
 
-CMD ["/bin/bash", "/setup-ca.sh", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["/bin/bash", "/setup-ca.sh", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "443", "--ssl-keyfile=/code/key.pem", "--ssl-certfile=/code/cert.pem"]

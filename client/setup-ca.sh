@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -xeo pipefail
 
 # Install the CA certificate - notice the CA container must be up and running when invoked
 if [[ -f "/ca-fingerprint" && $STEPCAURL != "" ]]; then

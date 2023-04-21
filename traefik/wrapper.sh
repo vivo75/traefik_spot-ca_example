@@ -1,6 +1,5 @@
 #!/bin/bash
-set -eo pipefail
-set +x
+set -xeo pipefail
 
 # Install the CA certificate - notice the CA container must be up and running when invoked
 if [[ -f "/ca-fingerprint" && $STEPCAURL != "" ]]; then
@@ -19,6 +18,6 @@ fi
 if [[ "${@}" == "" ]] ; then
     traefik
 else
-    traefik "${@}"
+    exec "${@}"
 fi
 

@@ -63,7 +63,7 @@ services:
         target: /var/run/docker.sock
         read_only: True
     depends_on:
-      api-server:
+      ca:
         condition: service_healthy
     networks:
       test-net:
@@ -79,10 +79,12 @@ services:
     build:
       context: ./api-server/
     image: test-net/api-server1:latest
+    # full list of labels: https://doc.traefik.io/traefik/v2.0/reference/dynamic-configuration/docker/
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=test.net"
       - "traefik.http.middlewares.api-server-redirect-websecure.redirectscheme.scheme=https"
+      - "traefik.frontend.passHostHeader=true"
       # Web
       - "traefik.http.routers.api-server-http.middlewares=api-server-redirect-websecure"
       - "traefik.http.routers.api-server-http.rule=Host(`api1.test.net`) || Host(`api2.test.net`) || Host(`api3.test.net`)"
@@ -95,8 +97,10 @@ services:
       - "traefik.http.routers.api-server.service=api-server-websecure"
       - "traefik.http.routers.api-server.tls=true"
       - "traefik.http.routers.api-server.tls.certresolver=api-server-resolver"
-      # Since we are using traefik as a proxy the backend use plain http on port 80
-      - "traefik.http.services.api-server-websecure.loadbalancer.server.port=80"
+      # Traefik terminate TLS connections but also the backend server is encrypted
+      - "traefik.http.services.api-server-websecure.loadbalancer.server.port=443"
+      - "traefik.http.services.api-server-websecure.loadbalancer.server.scheme=https"
+      - "traefik.default.protocol=https"
     depends_on:
       ca:
         condition: service_healthy
@@ -104,9 +108,13 @@ services:
       STEPCAURL: "https://ca.test.net:9000"
     networks:
       test-net:
+        aliases:
+          - api1.local.net
+          - api2.local.net
+          - api3.local.net
         ipv4_address: 172.33.3.2
     healthcheck:
-      test: ["CMD", "curl", "--fail", "--insecure", "http://api-server:80/"]
+      test: ["CMD", "curl", "--fail", "--insecure", "https://api1.local.net:443/health"]
       interval: 2s
       timeout: 1s
       retries: 2
