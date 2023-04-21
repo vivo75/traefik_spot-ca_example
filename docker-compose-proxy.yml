@@ -35,9 +35,6 @@ services:
         aliases:
           - ca.test.net
         ipv4_address: 172.33.3.0
-    extra_hosts:
-      # Required for ACME to work in this setup
-      - "api1.test.net api2.test.net api3.test.net:172.33.3.2"
     healthcheck:
       test: ["CMD", "curl", "--fail", "--insecure", "https://ca.test.net:9000/health"]
       interval: 2s
@@ -95,33 +92,21 @@ services:
       - "traefik.http.routers.api-server-http.service=api-server-web"
       - "traefik.http.services.api-server-web.loadbalancer.server.port=80"
       # Web Secure
-      - "traefik.tcp.services.api-server-websecure.loadbalancer.server.port=443"
-      - "traefik.tcp.services.api-server-websecure.loadbalancer.server.address=172.33.3.2:443"
+      - "traefik.http.routers.api-server.rule=Host(`api1.test.net`) || Host(`api2.test.net`) || Host(`api3.test.net`)"
+      - "traefik.http.routers.api-server.entrypoints=websecure"
+      - "traefik.http.routers.api-server.service=api-server-websecure"
+      - "traefik.http.routers.api-server.tls=true"
+      - "traefik.http.routers.api-server.tls.certresolver=api-server-resolver"
+      # Traefik terminate TLS connections but also the backend server is encrypted
+      - "traefik.http.services.api-server-websecure.loadbalancer.server.port=443"
+      - "traefik.http.services.api-server-websecure.loadbalancer.server.scheme=https"
       - "traefik.default.protocol=https"
-      # api1
-      - "traefik.tcp.routers.api1-server.rule=HostSNI(`api1.test.net`)"
-      - "traefik.tcp.routers.api1-server.entrypoints=websecure"
-      - "traefik.tcp.routers.api1-server.service=api-server-websecure"
-      - "traefik.tcp.routers.api1-server.tls=true"
-      - "traefik.tcp.routers.api1-server.tls.passthrough=true"
-      # api2
-      - "traefik.tcp.routers.api2-server.rule=HostSNI(`api2.test.net`)"
-      - "traefik.tcp.routers.api2-server.entrypoints=websecure"
-      - "traefik.tcp.routers.api2-server.service=api-server-websecure"
-      - "traefik.tcp.routers.api2-server.tls=true"
-      - "traefik.tcp.routers.api2-server.tls.passthrough=true"
-      # api3
-      - "traefik.tcp.routers.api3-server.rule=HostSNI(`api3.test.net`)"
-      - "traefik.tcp.routers.api3-server.entrypoints=websecure"
-      - "traefik.tcp.routers.api3-server.service=api-server-websecure"
-      - "traefik.tcp.routers.api3-server.tls=true"
-      - "traefik.tcp.routers.api3-server.tls.passthrough=true"
     depends_on:
       ca:
         condition: service_healthy
     environment:
       STEPCAURL: "https://ca.test.net:9000"
-      IS_PASSTHROUGH: "TLS"
+      IS_PASSTHROUGH: # MUST be empty to work as reverse proxy
     networks:
       test-net:
         aliases:
@@ -149,3 +134,5 @@ services:
     networks:
       test-net:
         ipv4_address: 172.33.3.3
+    # extra_hosts:
+    #   - "api1.test.net:172.33.3.2"
