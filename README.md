@@ -6,7 +6,9 @@ All comunications are encrypted and use https protocol. The CA certificate is in
 
 There are a total of three services all provided by the same container which answer with a json payload which contains the domain requested and the IP of the requester.
 
-External connections use domain test.net while internal ones local.net. This is a reverse proxy configuration so https is terminated at the ingress.
+External connections use domain test.net while internal ones local.net. On default configuration the ingress act as a transparent TCP proxy so the api server must have certificates for both internal and external domains.
+
+It's possible to use a reverse proxy configuration (via docker-compose-proxy.yml) https is terminated at the ingress and external certificates will be located there. The api server still need internal certificates for secure access via ingress or from the internal network.
 
 
 ## Structure of the project
